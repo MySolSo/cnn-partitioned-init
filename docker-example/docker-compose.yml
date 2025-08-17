@@ -1,0 +1,76 @@
+# docker-compose.yml
+version: "3.9"
+
+services:
+  split0:
+    build: ..
+    container_name: split0
+    volumes:
+      - ./shared:/workspace/shared
+      - ./:/workspace
+    environment:
+      - SPLIT_INDEX=0
+      - NUM_SPLITS=2
+      - EPOCHS=15
+      - BATCH_SIZE=128
+      - SHARED_DIR=/workspace/shared
+      - DATASET=CIFAR10
+      - SEED=42
+    command: ["uv", "run", "train_split.py"]
+    # Enable GPU if available:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+  split1:
+    build: ..
+    container_name: split1
+    volumes:
+      - ./shared:/workspace/shared
+      - ./:/workspace
+    environment:
+      - SPLIT_INDEX=1
+      - NUM_SPLITS=2
+      - EPOCHS=15
+      - BATCH_SIZE=128
+      - SHARED_DIR=/workspace/shared
+      - DATASET=CIFAR10
+      - SEED=43
+    command: ["uv", "run", "train_split.py"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  merger:
+    build: ..
+    container_name: merger
+    depends_on:
+      - split0
+      - split1
+    volumes:
+      - ./shared:/workspace/shared
+      - ./:/workspace
+    environment:
+      - NUM_SPLITS=2
+      - EPOCHS_MERGED=20
+      - EPOCHS_BASELINE=20
+      - BATCH_SIZE=128
+      - SHARED_DIR=/workspace/shared
+      - DATASET=CIFAR10
+      - SEED=123
+    command: ["uv", "run", "merge_and_finetune.py"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

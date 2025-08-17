@@ -1,0 +1,4 @@
+/docker-example/.venv/
+/docker-example/shared/
+/.venv/
+/.idea/
